@@ -50,6 +50,23 @@ docker run -d --name pr-review-agent -p 8080:8080 --env-file .env \
   -v pr-review-data:/data pr-review-agent
 ```
 
+### Deploy for free with GitHub Actions (no server needed)
+
+This agent is also shipped as a workflow in [`.github/workflows/pr-review.yml`](.github/workflows/pr-review.yml),
+so you don't need a server, domain or hosting at all. It runs the one-off `review`
+command on every PR open/update and on `/review` comments.
+
+1. Push the repo to GitHub and enable Actions.
+2. (Optional) add an `ANTHROPIC_API_KEY` secret for the AI pass; without it the
+   rule-based checks still run.
+3. (Optional) for PRs from forks, add a `PR_REVIEW_GITHUB_TOKEN` secret (a fine-grained
+   token with Pull requests *Read & write*, Commit statuses *Read & write*, Contents
+   *Read-only*). Same-repo PRs work with the built-in `GITHUB_TOKEN`.
+
+The workflow leaves the check green and instead relies on the `pr-review-agent` commit
+status (and optional *Request changes* review) as the gate — see below. Because it is
+serverless, polling mode (`watch`) and the always-on webhook server are not used.
+
 ## GitHub setup
 
 ### Option A: GitHub App (recommended for organisations)
@@ -138,3 +155,7 @@ Code layout (`src/pr_review_agent/`):
 - `llm.py`: Claude review pass with structured JSON output
 - `github.py`: GitHub REST client (token or App auth, retries, pagination)
 - `diff.py`: unified diff parsing and line mapping
+
+## License
+
+[MIT](LICENSE)

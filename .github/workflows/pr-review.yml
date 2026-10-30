@@ -1,0 +1,59 @@
+name: PR Review
+
+# Runs the review agent as a GitHub Actions workflow instead of a long-running
+# server. Free, no hosting or domain required.
+#
+# Optional secrets (set under repo Settings -> Secrets and variables -> Actions):
+#   PR_REVIEW_GITHUB_TOKEN - PAT or GitHub App token. Omit to use the built-in
+#                            GITHUB_TOKEN, which works for same-repo PRs but is
+#                            read-only for PRs opened from forks.
+#   ANTHROPIC_API_KEY      - Turns on the Claude review pass. Omit for rules-only.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  review:
+    # Skip draft PRs, and only act on issue comments that ask for a review.
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/review'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pr-review-agent
+        run: pip install .
+
+      - name: Determine PR number
+        id: pr
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # `|| true` keeps this workflow green: the agent posts its own commit status
+      # ("pr-review-agent") and, if configured, a "Request changes" review, which you
+      # mark as required in branch protection. Remove `|| true` to make this workflow
+      # itself fail on blocking findings instead.
+      - name: Review PR
+        run: |
+          pr-review-agent review "${{ github.repository }}#${{ steps.pr.outputs.number }}" || true
+        env:
+          PR_REVIEW_GITHUB_TOKEN: ${{ secrets.PR_REVIEW_GITHUB_TOKEN || github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
