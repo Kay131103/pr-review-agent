@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     github_api_url: str = "https://api.github.com"
     webhook_secret: SecretStr | None = None
 
-    # --- Claude review (optional; rule-based checks always run) ---
+    # --- LLM review (optional; rule-based checks always run) ---
     anthropic_api_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(
@@ -48,10 +48,11 @@ class Settings(BaseSettings):
         ),
     )
     llm_enabled: bool = True
-    llm_model: str = "claude-opus-5-5"
-    llm_effort: str = "medium"
+    llm_model: str = "qwen3.7-max"
     llm_max_tokens: int = 16000
     llm_timeout_seconds: float = 600.0
+    # OpenCode Zen gateway (Anthropic-compatible Messages API). The SDK appends /v1/messages.
+    llm_base_url: str | None = "https://opencode.ai/zen"
 
     # --- Review behaviour ---
     review_drafts: bool = False

@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     review = sub.add_parser("review", help="review a single pull request now")
     review.add_argument("pr", type=_parse_pr, help="owner/repo#123 or a pull request URL")
     review.add_argument("--dry-run", action="store_true", help="print findings; post nothing")
-    review.add_argument("--no-ai", action="store_true", help="skip the Claude review pass")
+    review.add_argument("--no-ai", action="store_true", help="skip the AI review pass")
 
     args = parser.parse_args(argv)
     overrides: dict[str, object] = {}

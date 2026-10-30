@@ -24,7 +24,7 @@ class FakeMessages:
 def fake_client(text: str | None, stop_reason: str = "end_turn") -> Any:
     content = [] if text is None else [SimpleNamespace(type="text", text=text)]
     messages = FakeMessages(SimpleNamespace(stop_reason=stop_reason, content=content))
-    return SimpleNamespace(beta=SimpleNamespace(messages=messages))
+    return SimpleNamespace(messages=messages, beta=SimpleNamespace(messages=messages))
 
 
 DIFFS = [parse_patch("a.py", patch_of("x = 1", "y = 2"))]
@@ -44,10 +44,11 @@ async def test_parses_findings_and_validates_lines() -> None:
 
     assert review.summary == "Two notes."
     assert [(f.line, f.title) for f in review.findings] == [(2, "Bug"), (None, "Far")]
-    kwargs = client.beta.messages.kwargs
-    assert kwargs["model"] == "claude-opus-5-5"
-    assert kwargs["output_config"]["format"]["type"] == "json_schema"
-    assert kwargs["fallbacks"] == "default"
+    kwargs = client.messages.kwargs
+    assert kwargs["model"] == "qwen3.7-max"
+    assert "output_config" not in kwargs
+    assert "thinking" not in kwargs
+    assert "fallbacks" not in kwargs
 
 
 @pytest.mark.parametrize(
@@ -71,5 +72,5 @@ async def test_oversized_files_are_reported_not_sent() -> None:
     reviewer = ClaudeReviewer(make_settings(max_patch_chars=400), client)
     review = await reviewer.review("t", "d", [*DIFFS, big])
     assert review.skipped_files == ["big.py"]
-    prompt = client.beta.messages.kwargs["messages"][0]["content"]
+    prompt = client.messages.kwargs["messages"][0]["content"]
     assert 'path="a.py"' in prompt and "big.py" not in prompt

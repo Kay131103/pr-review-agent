@@ -9,9 +9,11 @@ Each review has two passes:
 1. **Rule-based checks** always run and are deterministic. They look for committed secrets
    (private keys, AWS/GitHub/Anthropic/Slack tokens, hard-coded passwords), merge conflict
    markers, leftover debugger statements, `console.log`, new TODOs, and very large files.
-2. **AI review** (optional) uses Claude (`claude-opus-5-5` by default) to find bugs, security
-   problems and logic errors. The model must anchor each finding to a line in the diff. If it
-   picks a line GitHub can't comment on, the finding goes into the review summary.
+2. **AI review** (optional) uses an LLM through an Anthropic-compatible Messages API. By default
+   it targets the OpenCode Zen gateway (`qwen3.7-max`); point it at Anthropic instead with
+   `PR_REVIEW_LLM_BASE_URL` and `PR_REVIEW_LLM_MODEL`. The model must anchor each finding to a
+   line in the diff. If it picks a line GitHub can't comment on, the finding goes into the
+   review summary.
 
 If the AI pass fails (rate limit, outage, refusal), the rule-based results are still posted
 and the summary says the AI pass didn't run.
@@ -57,8 +59,10 @@ so you don't need a server, domain or hosting at all. It runs the one-off `revie
 command on every PR open/update and on `/review` comments.
 
 1. Push the repo to GitHub and enable Actions.
-2. (Optional) add an `ANTHROPIC_API_KEY` secret for the AI pass; without it the
-   rule-based checks still run.
+2. (Optional) add an `ANTHROPIC_API_KEY` secret with your OpenCode (`oc_sk_…`) or Anthropic
+   key for the AI pass; without it the rule-based checks still run. The AI pass defaults to
+   the OpenCode Zen gateway (`qwen3.7-max`); override with `PR_REVIEW_LLM_MODEL` /
+   `PR_REVIEW_LLM_BASE_URL` repository variables if needed.
 3. (Optional) for PRs from forks, add a `PR_REVIEW_GITHUB_TOKEN` secret (a fine-grained
    token with Pull requests *Read & write*, Commit statuses *Read & write*, Contents
    *Read-only*). Same-repo PRs work with the built-in `GITHUB_TOKEN`.
@@ -108,10 +112,10 @@ All settings are environment variables (or `.env` entries). See [.env.example](.
 | `PR_REVIEW_GITHUB_APP_ID` / `_PRIVATE_KEY` / `_PRIVATE_KEY_PATH` | – | GitHub App auth (Option A) |
 | `PR_REVIEW_GITHUB_API_URL` | `https://api.github.com` | Set for GitHub Enterprise Server (`https://host/api/v3`) |
 | `PR_REVIEW_WEBHOOK_SECRET` | – | Required to accept webhooks; deliveries with a bad signature are rejected |
-| `ANTHROPIC_API_KEY` | – | Turns on the AI review pass |
+| `ANTHROPIC_API_KEY` | – | Turns on the AI review pass (an OpenCode `oc_sk_…` key or an Anthropic key) |
 | `PR_REVIEW_LLM_ENABLED` | `true` | Set `false` to run rule-based checks only |
-| `PR_REVIEW_LLM_MODEL` | `claude-opus-5-5` | Claude model |
-| `PR_REVIEW_LLM_EFFORT` | `medium` | `low` / `medium` / `high` / `xhigh` / `max` |
+| `PR_REVIEW_LLM_MODEL` | `qwen3.7-max` | Model ID on the gateway (e.g. `claude-opus-5-5` for Anthropic) |
+| `PR_REVIEW_LLM_BASE_URL` | `https://opencode.ai/zen` | Anthropic-compatible gateway base URL. Use `https://opencode.ai/inference/anthropic` for the OpenCode Console gateway, or leave empty/unset to hit `api.anthropic.com` |
 | `PR_REVIEW_MAX_PATCH_CHARS` | `300000` | Diff size budget for the AI pass; files over budget are listed in the summary |
 | `PR_REVIEW_MAX_FILES` | `100` | Max changed files reviewed per PR |
 | `PR_REVIEW_MAX_INLINE_COMMENTS` | `30` | Further findings go into the summary |

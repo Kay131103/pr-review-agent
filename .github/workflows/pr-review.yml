@@ -4,10 +4,11 @@ name: PR Review
 # server. Free, no hosting or domain required.
 #
 # Optional secrets (set under repo Settings -> Secrets and variables -> Actions):
+#   ANTHROPIC_API_KEY - Your OpenCode (oc_sk_...) or Anthropic API key. Omit for rules-only.
+#                       The agent defaults to the OpenCode Zen gateway (qwen3.7-max).
 #   PR_REVIEW_GITHUB_TOKEN - PAT or GitHub App token. Omit to use the built-in
 #                            GITHUB_TOKEN, which works for same-repo PRs but is
 #                            read-only for PRs opened from forks.
-#   ANTHROPIC_API_KEY      - Turns on the Claude review pass. Omit for rules-only.
 
 on:
   pull_request:
@@ -57,3 +58,7 @@ jobs:
         env:
           PR_REVIEW_GITHUB_TOKEN: ${{ secrets.PR_REVIEW_GITHUB_TOKEN || github.token }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional overrides (repository Variables); the defaults already target
+          # the OpenCode Zen gateway with qwen3.7-max:
+          PR_REVIEW_LLM_BASE_URL: ${{ vars.PR_REVIEW_LLM_BASE_URL }}
+          PR_REVIEW_LLM_MODEL: ${{ vars.PR_REVIEW_LLM_MODEL }}
